@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101810">
+  <title>Змейка — арена</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      background: #111a12;
+      color: #fff;
+      font-synthesis: none;
+      font-weight: 500;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    body {
+      background: #111a12;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    button { font: inherit; }
+
+    #arena {
+      position: fixed;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 48%, rgba(3, 10, 5, .43) 100%);
+    }
+
+    #joystick {
+      position: fixed;
+      z-index: 4;
+      display: none;
+      width: 116px;
+      height: 116px;
+      border: 1px solid rgba(255, 255, 255, .35);
+      border-radius: 50%;
+      background: rgba(19, 30, 21, .48);
+      box-shadow: inset 0 0 25px rgba(0, 0, 0, .2), 0 5px 24px rgba(0, 0, 0, .22);
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
+    #joystick.visible { display: block; }
+
+    #joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 48px;
+      height: 48px;
+      border: 1px solid rgba(255, 255, 255, .5);
+      border-radius: 50%;
+      background: linear-gradient(145deg, rgba(187, 255, 122, .94), rgba(89, 207, 100, .94));
+      box-shadow: 0 3px 14px rgba(0, 0, 0, .3), inset 0 1px rgba(255, 255, 255, .45);
+      transform: translate(-50%, -50%);
+    }
+
+    .topbar {
+      position: fixed;
+      z-index: 3;
+      inset: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 15px 10px 11px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 16px;
+      background: rgba(14, 22, 16, .72);
+      box-shadow: 0 8px 28px #0003;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #9ae753, #4fbd53);
+      color: #102111;
+      font-size: 23px;
+      font-weight: 1000;
+      transform: rotate(-10deg);
+    }
+
+    .brand-name {
+      font-size: 16px;
+      font-weight: 950;
+      letter-spacing: -.045em;
+      line-height: 1;
+    }
+
+    .brand-caption {
+      margin-top: 4px;
+      color: #b9c8b7;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 13px;
+      background: rgba(14, 22, 16, .72);
+      color: white;
+      cursor: pointer;
+      font-size: 18px;
+      backdrop-filter: blur(10px);
+      transition: background .15s, transform .15s;
+    }
+
+    .icon-button:hover { background: rgba(49, 75, 48, .88); }
+    .icon-button:active { transform: scale(.95); }
+
+    .quest {
+      position: fixed;
+      z-index: 3;
+      top: max(20px, env(safe-area-inset-top));
+      left: 50%;
+      width: min(390px, calc(100% - 300px));
+      min-width: 230px;
+      padding: 12px 16px 13px;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 15px;
+      background: rgba(14, 22, 16, .78);
+      box-shadow: 0 8px 28px #0003;
+      backdrop-filter: blur(10px);
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .quest-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 7px;
+    }
+
+    .quest-level {
+      color: #baff72;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .quest-count {
+      color: #d6dfd2;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .quest-task {
+      margin-bottom: 10px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .progress-track {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, .14);
+    }
+
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #9be85a, #55d57a);
+      box-shadow: 0 0 12px rgba(130, 237, 99, .4);
+      transition: width .22s ease;
+    }
+
+    #achievement-toast {
+      position: fixed;
+      z-index: 4;
+      top: max(116px, calc(env(safe-area-inset-top) + 104px));
+      left: 50%;
+      width: min(360px, calc(100% - 32px));
+      padding: 12px 18px;
+      border: 1px solid rgba(194, 255, 133, .42);
+      border-radius: 14px;
+      background: linear-gradient(140deg, rgba(36, 58, 35, .97), rgba(17, 31, 19, .97));
+      box-shadow: 0 12px 38px rgba(0, 0, 0, .4), 0 0 24px rgba(153, 236, 98, .14);
+      color: #f4ffe9;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -12px);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    #achievement-toast.visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .toast-heading {
+      color: #c8ff8a;
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .toast-name {
+      margin-top: 3px;
+      font-size: 15px;
+      font-weight: 850;
+    }
+
+    .overlay {
+      position: fixed;
+      z-index: 5;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(5, 12, 7, .43);
+      backdrop-filter: blur(3px);
+    }
+
+    .overlay[hidden] { display: none; }
+
+    .dialog {
+      width: min(440px, 100%);
+      max-height: min(90vh, 760px);
+      overflow-y: auto;
+      padding: 34px 34px 30px;
+      border: 1px solid rgba(255, 255, 255, .2);
+      border-radius: 25px;
+      background: linear-gradient(150deg, rgba(33, 50, 34, .97), rgba(15, 25, 17, .97));
+      box-shadow: 0 25px 100px #0009, inset 0 1px rgba(255, 255, 255, .08);
+      text-align: center;
+    }
+
+    .dialog-mark {
+      display: grid;
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 16px;
+      place-items: center;
+      border-radius: 24px;
+      background: linear-gradient(145deg, #a4ee60, #52c85f);
+      box-shadow: 0 10px 32px rgba(104, 211, 80, .22);
+      color: #142716;
+      font-size: 42px;
+      transform: rotate(-7deg);
+    }
+
+    .dialog h1 {
+      margin: 0;
+      font-size: clamp(34px, 8vw, 48px);
+      font-weight: 1000;
+      letter-spacing: -.065em;
+      line-height: 1;
+    }
+
+    .dialog h1 span { color: #baff72; }
+
+    .dialog p {
+      margin: 13px 0 21px;
+      color: #d0dbcc;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    #start-button {
+      width: 100%;
+      padding: 15px 20px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #a7ed5d, #63d365);
+      box-shadow: 0 7px 22px rgba(100, 213, 91, .22);
+      color: #102213;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 950;
+      transition: filter .15s, transform .15s;
+    }
+
+    #start-button:hover { filter: brightness(1.06); }
+    #start-button:active { transform: translateY(1px); }
+
+    #achievements-button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 15px 20px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #ffc15a, #f28a32);
+      box-shadow: 0 7px 22px rgba(242, 138, 50, .24);
+      color: #38200e;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 950;
+      transition: filter .15s, transform .15s;
+    }
+
+    #achievements-button:hover { filter: brightness(1.06); }
+    #achievements-button:active { transform: translateY(1px); }
+
+    #infinite-button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 15px 20px;
+      border: 1px solid rgba(255, 255, 255, .17);
+      border-radius: 14px;
+      background: linear-gradient(145deg, #5bc9d5, #3689b2);
+      box-shadow: 0 7px 22px rgba(54, 137, 178, .22);
+      color: #09232b;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 950;
+      transition: filter .15s, transform .15s, opacity .15s;
+    }
+
+    #infinite-button:hover:not(:disabled) { filter: brightness(1.08); }
+    #infinite-button:active:not(:disabled) { transform: translateY(1px); }
+
+    #infinite-button:disabled {
+      background: linear-gradient(145deg, #59625b, #3e4742);
+      box-shadow: none;
+      color: #d0d7d0;
+      cursor: not-allowed;
+      opacity: .72;
+    }
+
+    #menu-return-button {
+      width: 100%;
+      margin-top: 9px;
+      padding: 12px 20px;
+      border: 1px solid rgba(255, 255, 255, .2);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .07);
+      color: #eef5e9;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 800;
+      transition: background .15s;
+    }
+
+    #menu-return-button:hover { background: rgba(255, 255, 255, .13); }
+    #menu-return-button[hidden], #achievements-button[hidden], #achievements-panel[hidden] { display: none; }
+
+    #achievements-panel {
+      max-height: min(48vh, 370px);
+      overflow-y: auto;
+      margin: 0 0 12px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, .11);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, .13);
+      text-align: left;
+    }
+
+    .achievement-group + .achievement-group { margin-top: 14px; }
+
+    .achievement-group h2 {
+      margin: 0 0 7px;
+      color: #c9ff83;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .achievement-group.rare h2 { color: #d6a7ff; }
+
+    .achievement-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .achievement {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 2px 10px;
+      padding: 8px 9px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .045);
+    }
+
+    .achievement-name {
+      color: #edf3e9;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .achievement-status {
+      color: #abb9a6;
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .achievement.unlocked .achievement-status {
+      color: #baff72;
+      font-weight: 850;
+    }
+
+    .achievement-track {
+      grid-column: 1 / -1;
+      height: 4px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, .12);
+    }
+
+    .achievement-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #9be85a, #55d57a);
+    }
+
+    .achievement-group.rare .achievement-fill {
+      background: linear-gradient(90deg, #b985f4, #e2a8ff);
+    }
+
+    .dialog-hint {
+      margin-top: 14px;
+      color: #9eae9d;
+      font-size: 11px;
+    }
+
+    .touch-hint { display: none; }
+
+    @media (max-width: 650px) {
+      .topbar { inset: max(12px, env(safe-area-inset-top)) 12px auto; }
+      .brand { gap: 8px; padding: 8px 10px 8px 8px; }
+      .brand-mark { width: 34px; height: 34px; font-size: 20px; }
+      .brand-name { font-size: 14px; }
+      .brand-caption { font-size: 8px; }
+      .icon-button { width: 38px; height: 38px; }
+      .quest { top: 62px; width: min(360px, calc(100% - 24px)); min-width: 0; padding: 10px 12px; }
+      .quest-task { margin-bottom: 8px; font-size: 13px; }
+      .dialog { padding: 29px 24px 24px; }
+      #achievement-toast { top: 144px; }
+    }
+
+    @media (pointer: coarse), (max-width: 1024px) {
+      .mouse-hint { display: none; }
+      .touch-hint { display: inline; }
+    }
+
+    @media (max-height: 500px) and (min-width: 651px) {
+      .quest { top: 12px; padding: 9px 13px; }
+      .quest-task { margin-bottom: 6px; }
+      .dialog { padding: 22px 28px; }
+      .dialog-mark { width: 55px; height: 55px; margin-bottom: 10px; font-size: 32px; }
+      .dialog p { margin: 9px 0 15px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="arena" aria-label="Игровая арена"></canvas>
+  <div class="vignette"></div>
+  <div id="joystick" aria-hidden="true"><div id="joystick-knob"></div></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div>
+        <div class="brand-name">ЗМЕЙКА</div>
+        <div class="brand-caption">на арене</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-button" id="menu-button" type="button" aria-label="Открыть меню" title="Меню">☰</button>
+      <button class="icon-button" id="sound-button" type="button" aria-label="Звук включён" title="Выключить звук" style="color:#bcff76">♫</button>
+      <button class="icon-button" id="fullscreen-button" type="button" aria-label="Полный экран" title="Полный экран">⛶</button>
+    </div>
+  </header>
+
+  <section class="quest" aria-label="Задание уровня">
+    <div class="quest-heading">
+      <span class="quest-level" id="quest-level">Уровень 1</span>
+      <span class="quest-count" id="quest-count">0 / 5</span>
+    </div>
+    <div class="quest-task" id="quest-task">Победи 5 змеек</div>
+    <div class="progress-track" id="progress-track" role="progressbar" aria-label="Прогресс уровня" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </section>
+
+  <div id="achievement-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <div class="toast-heading">Поздравляем! Новое достижение</div>
+    <div class="toast-name" id="achievement-toast-name"></div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <section class="dialog" aria-labelledby="dialog-title">
+      <div class="dialog-mark" id="dialog-mark">S</div>
+      <h1 id="dialog-title">Змейка<span>.</span></h1>
+      <p id="dialog-text">Собирай шарики и избегай столкновений.</p>
+      <button id="start-button" type="button">Играть</button>
+      <button id="infinite-button" type="button" disabled>🔒 Играть бесконечно</button>
+      <button id="achievements-button" type="button">Достижения</button>
+      <section id="achievements-panel" aria-label="Список достижений" hidden>
+        <div class="achievement-group">
+          <h2>Обычные</h2>
+          <div class="achievement-list" id="regular-achievements"></div>
+        </div>
+        <div class="achievement-group rare">
+          <h2>Редкие</h2>
+          <div class="achievement-list" id="rare-achievements"></div>
+        </div>
+      </section>
+      <button id="menu-return-button" type="button" hidden>В меню</button>
+      <div class="dialog-hint">
+        <span class="mouse-hint">Пробел — ускорение · двигай мышью, чтобы управлять змейкой</span>
+        <span class="touch-hint">Двигай первый палец — змейка повернёт. Коснись вторым, чтобы ускориться.</span>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("arena");
+      const ctx = canvas.getContext("2d");
+      const overlay = document.getElementById("overlay");
+      const title = document.getElementById("dialog-title");
+      const description = document.getElementById("dialog-text");
+      const startButton = document.getElementById("start-button");
+      const infiniteButton = document.getElementById("infinite-button");
+      const achievementsButton = document.getElementById("achievements-button");
+      const achievementsPanel = document.getElementById("achievements-panel");
+      const regularAchievements = document.getElementById("regular-achievements");
+      const rareAchievements = document.getElementById("rare-achievements");
+      const menuReturnButton = document.getElementById("menu-return-button");
+      const menuButton = document.getElementById("menu-button");
+      const soundButton = document.getElementById("sound-button");
+      const dialogHint = document.querySelector(".dialog-hint");
+      const joystick = document.getElementById("joystick");
+      const joystickKnob = document.getElementById("joystick-knob");
+      const questLevel = document.getElementById("quest-level");
+      const questPanel = document.querySelector(".quest");
+      const achievementToast = document.getElementById("achievement-toast");
+      const achievementToastName = document.getElementById("achievement-toast-name");
+      const questCount = document.getElementById("quest-count");
+      const questTask = document.getElementById("quest-task");
+      const progressTrack = document.getElementById("progress-track");
+      const progressFill = document.getElementById("progress-fill");
+      const arenaSize = 3400;
+      const colors = ["#63e7ff", "#ff638d", "#bd79ff", "#ffad4d", "#53e59a", "#ffdf55", "#ff795b", "#72a5ff", "#ec75dc"];
+      const names = ["Искра", "Пончик", "Кобра", "Турбо", "Лайм", "Бублик", "Фантом", "Ракета", "Мята"];
+      const achievementGoals = [
+        { type: "wins", target: 10, name: "Победи 10 змеек", rare: false },
+        { type: "wins", target: 20, name: "Победи 20 змеек", rare: false },
+        { type: "wins", target: 30, name: "Победи 30 змеек", rare: false },
+        { type: "experience", target: 100, name: "Собери 100 опыта", rare: false },
+        { type: "experience", target: 200, name: "Собери 200 опыта", rare: false },
+        { type: "wins", target: 50, name: "Победи 50 змеек", rare: true },
+        { type: "wins", target: 100, name: "Победи 100 змеек", rare: true },
+        { type: "experience", target: 300, name: "Собери 300 опыта", rare: true },
+        { type: "experience", target: 400, name: "Собери 400 опыта", rare: true }
+      ];
+      const player = { name: "Ты", color: "#9ef15b", body: [], angle: 0, score: 0, alive: true, boost: false, ai: false, targetTimer: 0 };
+
+      let width = 0;
+      let height = 0;
+      let pixelRatio = 1;
+      let cameraZoom = 1;
+      let camera = { x: arenaSize / 2, y: arenaSize / 2 };
+      let snakes = [];
+      let food = [];
+      let running = false;
+      let animationFrame = 0;
+      let lastTime = 0;
+      let pointerAngle = 0;
+      let pointerActive = false;
+      let joystickPointerId = null;
+      let boostPointerId = null;
+      let joystickOrigin = { x: 0, y: 0 };
+      let keyboardTurn = 0;
+      let soundOn = true;
+      let audioContext = null;
+      let level = 1;
+      let levelProgress = 0;
+      let pausedForMenu = false;
+      let gameMode = "normal";
+      let lifetimeStats = loadLifetimeStats();
+      let endlessUnlocked = loadEndlessUnlocked();
+      let achievementToastTimer = 0;
+
+      function loadEndlessUnlocked() {
+        try {
+          return localStorage.getItem("snake-endless-unlocked") === "true";
+        } catch (error) {
+          console.error("Не удалось загрузить состояние бесконечного режима:", error);
+          return false;
+        }
+      }
+
+      function saveEndlessUnlocked() {
+        try {
+          localStorage.setItem("snake-endless-unlocked", "true");
+        } catch (error) {
+          console.error("Не удалось сохранить открытие бесконечного режима:", error);
+        }
+      }
+
+      function updateInfiniteButton() {
+        infiniteButton.disabled = !endlessUnlocked;
+        infiniteButton.textContent = endlessUnlocked
+          ? "♾ Играть бесконечно"
+          : "🔒 Играть бесконечно — пройди 3 уровня";
+        infiniteButton.title = endlessUnlocked
+          ? "Начать бесконечную игру"
+          : "Сначала пройди все 3 уровня обычной игры";
+      }
+
+      function loadLifetimeStats() {
+        try {
+          const saved = JSON.parse(localStorage.getItem("snake-achievement-progress") || "{}");
+          return {
+            wins: Number.isFinite(saved.wins) && saved.wins >= 0 ? Math.floor(saved.wins) : 0,
+            experience: Number.isFinite(saved.experience) && saved.experience >= 0 ? Math.floor(saved.experience) : 0
+          };
+        } catch (error) {
+          console.error("Не удалось загрузить прогресс достижений:", error);
+          return { wins: 0, experience: 0 };
+        }
+      }
+
+      function saveLifetimeStats() {
+        try {
+          localStorage.setItem("snake-achievement-progress", JSON.stringify(lifetimeStats));
+        } catch (error) {
+          console.error("Не удалось сохранить прогресс достижений:", error);
+        }
+      }
+
+      function updateLifetimeStat(type) {
+        const previous = lifetimeStats[type];
+        lifetimeStats[type] += 1;
+        saveLifetimeStats();
+        renderAchievements();
+
+        const newlyUnlocked = achievementGoals.filter(goal =>
+          goal.type === type && previous < goal.target && lifetimeStats[type] >= goal.target
+        );
+        newlyUnlocked.forEach((goal, index) => {
+          window.setTimeout(() => showAchievementToast(goal.name), index * 350);
+        });
+      }
+
+      function showAchievementToast(name) {
+        achievementToastName.textContent = name;
+        achievementToast.hidden = false;
+        requestAnimationFrame(() => achievementToast.classList.add("visible"));
+        window.clearTimeout(achievementToastTimer);
+        achievementToastTimer = window.setTimeout(() => {
+          achievementToast.classList.remove("visible");
+          window.setTimeout(() => {
+            if (!achievementToast.classList.contains("visible")) achievementToast.hidden = true;
+          }, 220);
+        }, 3200);
+      }
+
+      function renderAchievements() {
+        regularAchievements.replaceChildren();
+        rareAchievements.replaceChildren();
+
+        for (const goal of achievementGoals) {
+          const current = lifetimeStats[goal.type];
+          const unlocked = current >= goal.target;
+          const row = document.createElement("div");
+          row.className = `achievement${unlocked ? " unlocked" : ""}`;
+
+          const name = document.createElement("span");
+          name.className = "achievement-name";
+          name.textContent = goal.name;
+
+          const status = document.createElement("span");
+          status.className = "achievement-status";
+          status.textContent = unlocked ? "Получено" : `${current} / ${goal.target}`;
+
+          const track = document.createElement("div");
+          track.className = "achievement-track";
+          track.setAttribute("role", "progressbar");
+          track.setAttribute("aria-label", goal.name);
+          track.setAttribute("aria-valuemin", "0");
+          track.setAttribute("aria-valuemax", String(goal.target));
+          track.setAttribute("aria-valuenow", String(Math.min(current, goal.target)));
+
+          const fill = document.createElement("div");
+          fill.className = "achievement-fill";
+          fill.style.width = `${Math.min(100, current / goal.target * 100)}%`;
+          track.append(fill);
+          row.append(name, status, track);
+          (goal.rare ? rareAchievements : regularAchievements).append(row);
+        }
+      }
+
+      function resize() {
+        pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        cameraZoom = Math.max(.62, Math.min(1, width / 700, height / 820));
+        canvas.width = Math.round(width * pixelRatio);
+        canvas.height = Math.round(height * pixelRatio);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      }
+
+      function randomFood(x = Math.random() * arenaSize, y = Math.random() * arenaSize, color) {
+        return { x, y, radius: 3 + Math.random() * 3, color: color || colors[Math.floor(Math.random() * colors.length)], phase: Math.random() * Math.PI * 2 };
+      }
+
+      function makeSnake(name, color, x, y, isPlayer = false) {
+        const snake = {
+          name,
+          color,
+          body: [],
+          angle: Math.random() * Math.PI * 2,
+          score: isPlayer ? 0 : Math.floor(Math.random() * 20),
+          alive: true,
+          boost: false,
+          ai: !isPlayer,
+          targetTimer: Math.random() * 2
+        };
+        const segments = 12 + snake.score;
+        for (let i = 0; i < segments; i++) {
+          snake.body.push({
+            x: x - Math.cos(snake.angle) * i * 11,
+            y: y - Math.sin(snake.angle) * i * 11
+          });
+        }
+        return snake;
+      }
+
+      function randomBotSpawnPoint() {
+        const spawnMargin = 800;
+        const screenLeft = camera.x - width / (2 * cameraZoom) - spawnMargin;
+        const screenRight = camera.x + width / (2 * cameraZoom) + spawnMargin;
+        const screenTop = camera.y - height / (2 * cameraZoom) - spawnMargin;
+        const screenBottom = camera.y + height / (2 * cameraZoom) + spawnMargin;
+        let fallback = null;
+        let bestClearance = -Infinity;
+
+        for (let attempt = 0; attempt < 300; attempt++) {
+          const point = {
+            x: 220 + Math.random() * (arenaSize - 440),
+            y: 220 + Math.random() * (arenaSize - 440)
+          };
+          const clearance = Math.max(
+            screenLeft - point.x,
+            point.x - screenRight,
+            screenTop - point.y,
+            point.y - screenBottom
+          );
+          if (clearance > bestClearance) {
+            bestClearance = clearance;
+            fallback = point;
+          }
+          if (clearance <= 0) continue;
+
+          const nearSnake = snakes.some(snake =>
+            snake.alive && snake.body.some((segment, index) =>
+              index % 4 === 0 && Math.hypot(point.x - segment.x, point.y - segment.y) < 220
+            )
+          );
+          if (!nearSnake) return point;
+        }
+
+        return fallback;
+      }
+
+      function newGame(mode = "normal") {
+        player.body = [];
+        player.angle = 0;
+        player.score = 0;
+        player.alive = true;
+        player.boost = false;
+        gameMode = mode;
+        if (gameMode === "normal") {
+          level = 1;
+          levelProgress = 0;
+        }
+        pausedForMenu = false;
+        questPanel.hidden = gameMode === "infinite";
+        camera = { x: arenaSize / 2, y: arenaSize / 2 };
+        player.body = Array.from({ length: 18 }, (_, i) => ({ x: arenaSize / 2 - i * 11, y: arenaSize / 2 }));
+        snakes = [player];
+        for (let i = 0; i < names.length; i++) {
+          const spawn = randomBotSpawnPoint();
+          snakes.push(makeSnake(names[i], colors[i], spawn.x, spawn.y));
+        }
+        food = Array.from({ length: 500 }, () => randomFood());
+        pointerAngle = player.angle;
+        updateHud();
+      }
+
+      function wrapAngle(angle) {
+        return Math.atan2(Math.sin(angle), Math.cos(angle));
+      }
+
+      function turnToward(snake, target, dt) {
+        const difference = wrapAngle(target - snake.angle);
+        const turnRate = snake.ai ? 2.4 : 3.4;
+        snake.angle += Math.max(-turnRate * dt, Math.min(turnRate * dt, difference));
+      }
+
+      function moveSnake(snake, dt) {
+        const head = snake.body[0];
+        const boosted = snake.boost && snake.body.length > 20;
+        const speed = (boosted ? 285 : 175) * Math.min(1.8, 1 + snake.score * .006);
+        const distance = speed * dt;
+        head.x += Math.cos(snake.angle) * distance;
+        head.y += Math.sin(snake.angle) * distance;
+
+        const wantedSegments = 18 + Math.floor(snake.score * .72);
+        while (snake.body.length < wantedSegments) {
+          const tail = snake.body[snake.body.length - 1];
+          snake.body.push({ x: tail.x, y: tail.y });
+        }
+
+        const spacing = 10.5;
+        for (let i = 1; i < snake.body.length; i++) {
+          const previous = snake.body[i - 1];
+          const segment = snake.body[i];
+          const dx = segment.x - previous.x;
+          const dy = segment.y - previous.y;
+          const separation = Math.hypot(dx, dy) || 1;
+          if (separation > spacing) {
+            const correction = (separation - spacing) / separation;
+            segment.x -= dx * correction;
+            segment.y -= dy * correction;
+          }
+        }
+
+        if (boosted && Math.random() < dt * 5 && snake.body.length > 20) {
+          const tail = snake.body.pop();
+          food.push(randomFood(tail.x, tail.y, snake.color));
+          if (!snake.ai) {
+            snake.score = Math.max(0, snake.score - 1);
+            updateHud();
+          }
+        }
+      }
+
+      function steerBots(dt) {
+        for (const snake of snakes) {
+          if (!snake.alive || !snake.ai) continue;
+          snake.targetTimer -= dt;
+          if (snake.targetTimer <= 0) {
+            snake.targetTimer = .6 + Math.random() * 1.4;
+            const head = snake.body[0];
+            let target = null;
+            let nearest = 500;
+            for (const pellet of food) {
+              const distance = Math.hypot(pellet.x - head.x, pellet.y - head.y);
+              if (distance < nearest) {
+                nearest = distance;
+                target = pellet;
+              }
+            }
+            let targetAngle = target ? Math.atan2(target.y - head.y, target.x - head.x) : snake.angle + (Math.random() - .5);
+            const margin = 360;
+            if (head.x < margin) targetAngle = Math.atan2(arenaSize / 2 - head.y, arenaSize / 2 - head.x);
+            if (head.x > arenaSize - margin) targetAngle = Math.atan2(arenaSize / 2 - head.y, arenaSize / 2 - head.x);
+            if (head.y < margin) targetAngle = Math.atan2(arenaSize / 2 - head.y, arenaSize / 2 - head.x);
+            if (head.y > arenaSize - margin) targetAngle = Math.atan2(arenaSize / 2 - head.y, arenaSize / 2 - head.x);
+            snake.targetAngle = targetAngle;
+          }
+          turnToward(snake, snake.targetAngle || snake.angle, dt);
+        }
+      }
+
+      function collectFood(snake) {
+        const head = snake.body[0];
+        for (let i = food.length - 1; i >= 0; i--) {
+          const pellet = food[i];
+          if (Math.hypot(head.x - pellet.x, head.y - pellet.y) < 15) {
+            food.splice(i, 1);
+            snake.score += 1;
+            if (!snake.ai) {
+              updateLifetimeStat("experience");
+              if (gameMode === "normal" && level === 2) {
+                levelProgress += 1;
+                if (levelProgress >= 50) advanceLevel();
+                else updateHud();
+              }
+              food.push(...Array.from({ length: 2 }, () => randomFood()));
+              playSound(720);
+            }
+          }
+        }
+      }
+
+      function advanceLevel() {
+        if (level < 3) {
+          level += 1;
+          levelProgress = 0;
+          updateHud();
+          return;
+        }
+
+        if (!endlessUnlocked) {
+          endlessUnlocked = true;
+          saveEndlessUnlocked();
+          updateInfiniteButton();
+        }
+        running = false;
+        player.boost = false;
+        pausedForMenu = false;
+        title.innerHTML = `Ты победил<span>!</span>`;
+        description.textContent = "Готово — все три уровня пройдены!";
+        startButton.textContent = "Сыграть ещё";
+        startButton.hidden = false;
+        achievementsButton.hidden = true;
+        achievementsPanel.hidden = true;
+        dialogHint.hidden = false;
+        menuReturnButton.textContent = "В меню";
+        menuReturnButton.hidden = false;
+        overlay.hidden = false;
+      }
+
+      function die(snake, creditedToPlayer = false, cause = "snake") {
+        if (!snake.alive) return;
+        snake.alive = false;
+        if (creditedToPlayer) {
+          updateLifetimeStat("wins");
+        }
+        if (gameMode === "normal" && creditedToPlayer && (level === 1 || level === 3)) {
+          levelProgress += 1;
+          if (levelProgress >= 5) advanceLevel();
+          else updateHud();
+        }
+        for (let i = 4; i < snake.body.length; i += 3) {
+          const segment = snake.body[i];
+          food.push(randomFood(segment.x, segment.y, snake.color));
+        }
+        if (snake === player) {
+          running = false;
+          player.boost = false;
+          pausedForMenu = false;
+          const messages = {
+            wall: ["Игра окончена", "Ты врезался в стену. Попробуй ещё раз!"],
+            self: ["Ты врезался в себя!", "Смотри, куда поворачиваешь. Ещё попытка?"],
+            snake: ["Ты врезался в другую змейку!", "Будь внимательнее — попробуй ещё раз!"]
+          };
+          const [deathTitle, deathDescription] = messages[cause];
+          title.textContent = deathTitle;
+          description.textContent = deathDescription;
+          startButton.textContent = "Ещё раз";
+          startButton.hidden = false;
+          achievementsButton.hidden = true;
+          achievementsPanel.hidden = true;
+          dialogHint.hidden = false;
+          menuReturnButton.textContent = "В меню";
+          menuReturnButton.hidden = false;
+          overlay.hidden = false;
+          playSound(180);
+        } else {
+          setTimeout(() => {
+            if (!running) return;
+            const index = snakes.indexOf(snake);
+            if (index < 0) return;
+            const spawn = randomBotSpawnPoint();
+            snakes[index] = makeSnake(snake.name, snake.color, spawn.x, spawn.y);
+          }, 1800);
+        }
+      }
+
+      function checkCollisions() {
+        for (const snake of snakes) {
+          if (!running) return;
+          if (!snake.alive) continue;
+          const head = snake.body[0];
+          if (head.x < 24 || head.y < 24 || head.x > arenaSize - 24 || head.y > arenaSize - 24) {
+            die(snake, false, "wall");
+            continue;
+          }
+          for (let i = 7; i < snake.body.length; i++) {
+            if (Math.hypot(head.x - snake.body[i].x, head.y - snake.body[i].y) < 14) {
+              die(snake, false, "self");
+              break;
+            }
+          }
+          if (!snake.alive) continue;
+          for (const rival of snakes) {
+            if (!rival.alive || rival === snake) continue;
+            if (rival === player && !player.alive) continue;
+            let hit = false;
+            for (let i = 1; i < rival.body.length; i++) {
+              if (Math.hypot(head.x - rival.body[i].x, head.y - rival.body[i].y) < 14) {
+                hit = true;
+                break;
+              }
+            }
+            if (hit) {
+              die(snake, rival === player, "snake");
+              break;
+            }
+          }
+        }
+      }
+
+      function updateHud() {
+        if (gameMode === "infinite") return;
+        const target = level === 2 ? 50 : 5;
+        questLevel.textContent = `Уровень ${level}`;
+        questTask.textContent = level === 2
+          ? "Собери 50 очков опыта"
+          : level === 3 ? "Победи ещё 5 змеек" : "Победи 5 змеек";
+        questCount.textContent = `${Math.min(levelProgress, target)} / ${target}`;
+        progressTrack.setAttribute("aria-valuemax", String(target));
+        progressTrack.setAttribute("aria-valuenow", String(Math.min(levelProgress, target)));
+        progressFill.style.width = `${Math.min(100, levelProgress / target * 100)}%`;
+      }
+
+      function drawBackground() {
+        ctx.fillStyle = "#17241a";
+        ctx.fillRect(0, 0, width, height);
+        const grid = 48;
+        const gridSize = grid * cameraZoom;
+        const left = width / 2 - camera.x * cameraZoom;
+        const top = height / 2 - camera.y * cameraZoom;
+        const offsetX = -((left % gridSize) + gridSize) % gridSize;
+        const offsetY = -((top % gridSize) + gridSize) % gridSize;
+        ctx.strokeStyle = "rgba(204, 237, 190, .045)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = offsetX; x < width; x += gridSize) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+        }
+        for (let y = offsetY; y < height; y += gridSize) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(251, 103, 91, .65)";
+        ctx.lineWidth = 9 * cameraZoom;
+        ctx.strokeRect(left, top, arenaSize * cameraZoom, arenaSize * cameraZoom);
+        ctx.strokeStyle = "rgba(255, 153, 103, .13)";
+        ctx.lineWidth = 20 * cameraZoom;
+        ctx.strokeRect(left, top, arenaSize * cameraZoom, arenaSize * cameraZoom);
+      }
+
+      function drawFood(time) {
+        for (const pellet of food) {
+          const x = (pellet.x - camera.x) * cameraZoom + width / 2;
+          const y = (pellet.y - camera.y) * cameraZoom + height / 2;
+          if (x < -20 || y < -20 || x > width + 20 || y > height + 20) continue;
+          const pulse = 1 + Math.sin(time * .004 + pellet.phase) * .13;
+          ctx.globalAlpha = .75 + pulse * .15;
+          ctx.shadowColor = pellet.color;
+          ctx.shadowBlur = 9 * cameraZoom;
+          ctx.fillStyle = pellet.color;
+          ctx.beginPath();
+          ctx.arc(x, y, pellet.radius * pulse * cameraZoom, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      }
+
+      function drawSnake(snake) {
+        if (!snake.alive || !snake.body.length) return;
+        const points = snake.body;
+        const head = points[0];
+        const screenX = (head.x - camera.x) * cameraZoom + width / 2;
+        const screenY = (head.y - camera.y) * cameraZoom + height / 2;
+        const radius = (snake === player ? 10 : 9) * cameraZoom;
+        const gradient = ctx.createLinearGradient(screenX - 120, screenY - 80, screenX + 120, screenY + 80);
+        gradient.addColorStop(0, snake.color);
+        gradient.addColorStop(1, snake.color);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "rgba(0,0,0,.24)";
+        ctx.lineWidth = radius * 2 + 4 * cameraZoom;
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          const x = (point.x - camera.x) * cameraZoom + width / 2;
+          const y = (point.y - camera.y) * cameraZoom + height / 2;
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = radius * 2;
+        ctx.stroke();
+
+        for (let i = 4; i < points.length; i += 5) {
+          const point = points[i];
+          const x = (point.x - camera.x) * cameraZoom + width / 2;
+          const y = (point.y - camera.y) * cameraZoom + height / 2;
+          ctx.fillStyle = "rgba(255,255,255,.28)";
+          ctx.beginPath();
+          ctx.arc(x - 2 * cameraZoom, y - 2 * cameraZoom, 2.1 * cameraZoom, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = snake.color;
+        ctx.shadowColor = snake.color;
+        ctx.shadowBlur = (snake.boost ? 19 : 9) * cameraZoom;
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, radius + 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        const eyeAngle = snake.angle;
+        const eyeForwardX = Math.cos(eyeAngle) * 4 * cameraZoom;
+        const eyeForwardY = Math.sin(eyeAngle) * 4 * cameraZoom;
+        const eyeSideX = Math.cos(eyeAngle + Math.PI / 2) * 4 * cameraZoom;
+        const eyeSideY = Math.sin(eyeAngle + Math.PI / 2) * 4 * cameraZoom;
+        for (const side of [-1, 1]) {
+          const eyeX = screenX + eyeForwardX + eyeSideX * side;
+          const eyeY = screenY + eyeForwardY + eyeSideY * side;
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(eyeX, eyeY, 3.4 * cameraZoom, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#172319";
+          ctx.beginPath();
+          ctx.arc(eyeX + Math.cos(eyeAngle) * 1.5 * cameraZoom, eyeY + Math.sin(eyeAngle) * 1.5 * cameraZoom, 1.6 * cameraZoom, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (snake !== player) {
+          ctx.fillStyle = "rgba(248,255,243,.88)";
+          ctx.font = `800 ${11 * cameraZoom}px Inter, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.shadowColor = "#09110a";
+          ctx.shadowBlur = 5;
+          ctx.fillText(snake.name, screenX, screenY - 17 * cameraZoom);
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      function draw(time) {
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        drawBackground();
+        drawFood(time);
+        for (const snake of snakes) drawSnake(snake);
+      }
+
+      function frame(time) {
+        const dt = Math.min((time - (lastTime || time)) / 1000, .04);
+        lastTime = time;
+        if (running) {
+          const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
+          const stepTime = dt / steps;
+          for (let step = 0; step < steps && running; step++) {
+            if (pointerActive) turnToward(player, pointerAngle, stepTime);
+            if (keyboardTurn) player.angle += keyboardTurn * 2.7 * stepTime;
+            steerBots(stepTime);
+            for (const snake of snakes) {
+              if (!snake.alive) continue;
+              moveSnake(snake, stepTime);
+              collectFood(snake);
+            }
+            checkCollisions();
+          }
+          camera.x += (player.body[0].x - camera.x) * Math.min(1, dt * 5);
+          camera.y += (player.body[0].y - camera.y) * Math.min(1, dt * 5);
+        }
+        draw(time);
+        animationFrame = requestAnimationFrame(frame);
+      }
+
+      function updatePointer(event) {
+        if (event.pointerType !== "mouse") return;
+        const dx = event.clientX - width / 2;
+        const dy = event.clientY - height / 2;
+        if (Math.hypot(dx, dy) > 8) {
+          pointerAngle = Math.atan2(dy, dx);
+          pointerActive = true;
+        }
+      }
+
+      function startGame(mode = gameMode) {
+        cancelAnimationFrame(animationFrame);
+        if (soundOn) enableSound();
+        if (pausedForMenu && player.alive) {
+          pausedForMenu = false;
+        } else {
+          newGame(mode);
+        }
+        menuReturnButton.hidden = true;
+        infiniteButton.hidden = true;
+        achievementsButton.hidden = true;
+        achievementsPanel.hidden = true;
+        dialogHint.hidden = true;
+        running = true;
+        overlay.hidden = true;
+        lastTime = 0;
+        animationFrame = requestAnimationFrame(frame);
+      }
+
+      function openMenu() {
+        if (running && player.alive) {
+          running = false;
+          player.boost = false;
+          pausedForMenu = true;
+          title.innerHTML = `Меню<span>.</span>`;
+          description.textContent = "Игра на паузе. Нажми «Играть», чтобы продолжить.";
+          startButton.textContent = "Играть";
+          startButton.hidden = false;
+          infiniteButton.hidden = true;
+          achievementsButton.hidden = true;
+          achievementsPanel.hidden = true;
+          dialogHint.hidden = false;
+          menuReturnButton.textContent = "В главное меню";
+          menuReturnButton.hidden = false;
+          overlay.hidden = false;
+          return;
+        }
+
+        if (!overlay.hidden) {
+          showMainMenu();
+        }
+      }
+
+      function showMainMenu() {
+        running = false;
+        pausedForMenu = false;
+        player.boost = false;
+        gameMode = "normal";
+        questPanel.hidden = false;
+        updateHud();
+        title.innerHTML = `Змейка<span>.</span>`;
+        description.textContent = "Собирай шарики и избегай столкновений.";
+        description.hidden = false;
+        startButton.textContent = "Играть";
+        startButton.hidden = false;
+        infiniteButton.hidden = false;
+        achievementsButton.hidden = false;
+        achievementsPanel.hidden = true;
+        dialogHint.hidden = false;
+        menuReturnButton.textContent = "В меню";
+        menuReturnButton.hidden = true;
+        updateInfiniteButton();
+        overlay.hidden = false;
+      }
+
+      function showAchievements() {
+        if (running || pausedForMenu) return;
+        renderAchievements();
+        title.textContent = "Достижения";
+        description.textContent = "Прогресс сохраняется между играми.";
+        description.hidden = false;
+        startButton.hidden = true;
+        infiniteButton.hidden = true;
+        achievementsButton.hidden = true;
+        achievementsPanel.hidden = false;
+        dialogHint.hidden = true;
+        menuReturnButton.textContent = "Назад";
+        menuReturnButton.hidden = false;
+        overlay.hidden = false;
+      }
+
+      function setBoost(active) {
+        player.boost = active && running;
+      }
+
+      function playSound(frequency) {
+        if (!soundOn) return;
+        if (!audioContext) audioContext = new window.AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.frequency.value = frequency;
+        oscillator.type = "sine";
+        gain.gain.setValueAtTime(.055, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + .12);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + .12);
+      }
+
+      function enableSound() {
+        if (!audioContext) audioContext = new window.AudioContext();
+        if (audioContext.state === "suspended") {
+          audioContext.resume().catch(error => {
+            console.error("Не удалось включить звук:", error);
+          });
+        }
+      }
+
+      function startJoystick(event) {
+        if (event.pointerType !== "touch" || !running || !overlay.hidden) return;
+        if (event.target.closest("button")) return;
+
+        if (joystickPointerId !== null) {
+          if (event.pointerId !== joystickPointerId && boostPointerId === null) {
+            boostPointerId = event.pointerId;
+            setBoost(true);
+            event.preventDefault();
+          }
+          return;
+        }
+
+        joystickPointerId = event.pointerId;
+        joystickOrigin = { x: event.clientX, y: event.clientY };
+        joystick.style.left = `${event.clientX}px`;
+        joystick.style.top = `${event.clientY}px`;
+        joystickKnob.style.left = "50%";
+        joystickKnob.style.top = "50%";
+        joystick.classList.add("visible");
+        pointerAngle = player.angle;
+        pointerActive = true;
+        if (event.isTrusted && event.target.setPointerCapture) event.target.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      }
+
+      function moveJoystick(event) {
+        if (event.pointerId !== joystickPointerId) return;
+        const dx = event.clientX - joystickOrigin.x;
+        const dy = event.clientY - joystickOrigin.y;
+        const distance = Math.hypot(dx, dy);
+        const maxDistance = 35;
+        const scale = distance > maxDistance ? maxDistance / distance : 1;
+        const knobX = dx * scale;
+        const knobY = dy * scale;
+        joystickKnob.style.left = `calc(50% + ${knobX}px)`;
+        joystickKnob.style.top = `calc(50% + ${knobY}px)`;
+        if (distance > 8) pointerAngle = Math.atan2(dy, dx);
+        event.preventDefault();
+      }
+
+      function stopJoystick(event) {
+        if (event.pointerId === boostPointerId) {
+          boostPointerId = null;
+          setBoost(false);
+          return;
+        }
+        if (event.pointerId === joystickPointerId) {
+          joystickPointerId = null;
+          joystick.classList.remove("visible");
+          pointerActive = false;
+          if (boostPointerId !== null) {
+            boostPointerId = null;
+            setBoost(false);
+          }
+        }
+      }
+
+      document.addEventListener("pointerdown", startJoystick, true);
+      document.addEventListener("pointermove", moveJoystick, true);
+      document.addEventListener("pointerup", stopJoystick, true);
+      document.addEventListener("pointercancel", stopJoystick, true);
+      canvas.addEventListener("pointermove", updatePointer);
+
+      document.addEventListener("keydown", event => {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(event.key)) event.preventDefault();
+        if (event.key === "Escape") {
+          event.preventDefault();
+          if (!event.repeat) {
+            if (running) openMenu();
+            else if (pausedForMenu) startGame();
+            else if (!overlay.hidden) showMainMenu();
+          }
+          return;
+        }
+        if (event.code === "Space") setBoost(true);
+        if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") keyboardTurn = -1;
+        if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") keyboardTurn = 1;
+      });
+      document.addEventListener("keyup", event => {
+        if (event.code === "Space") setBoost(false);
+        if ((event.key === "ArrowLeft" || event.key.toLowerCase() === "a") && keyboardTurn < 0) keyboardTurn = 0;
+        if ((event.key === "ArrowRight" || event.key.toLowerCase() === "d") && keyboardTurn > 0) keyboardTurn = 0;
+      });
+      window.addEventListener("blur", () => {
+        keyboardTurn = 0;
+        setBoost(false);
+      });
+
+      startButton.addEventListener("click", () => startGame());
+      infiniteButton.addEventListener("click", () => {
+        if (endlessUnlocked) startGame("infinite");
+      });
+      achievementsButton.addEventListener("click", showAchievements);
+      menuReturnButton.addEventListener("click", showMainMenu);
+      menuButton.addEventListener("click", openMenu);
+
+      document.getElementById("fullscreen-button").addEventListener("click", async () => {
+        try {
+          if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+          else await document.exitFullscreen();
+        } catch (error) {
+          console.error("Не удалось переключить полноэкранный режим:", error);
+        }
+      });
+      soundButton.addEventListener("click", () => {
+        soundOn = !soundOn;
+        soundButton.setAttribute("aria-label", soundOn ? "Звук включён" : "Звук выключен");
+        soundButton.title = soundOn ? "Выключить звук" : "Включить звук";
+        soundButton.style.color = soundOn ? "#bcff76" : "#fff";
+        if (soundOn) {
+          enableSound();
+          playSound(560);
+        }
+      });
+
+      window.addEventListener("resize", resize);
+      resize();
+      newGame();
+      updateInfiniteButton();
+      renderAchievements();
+      draw(0);
+    })();
+  </script>
+</body>
+</html>
